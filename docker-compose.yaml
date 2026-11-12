@@ -1,0 +1,28 @@
+version: '3'
+services:
+  #服务名
+  llmops-ui:
+    #镜像名
+    image: llmops-ui:0.1.0
+    build:
+      context: ../llmops-ui
+      dockerfile: Dockerfile
+    #容器名
+    container_name: llmops-ui
+    #启动docker服务时自动启动容器
+    restart: always
+    environment: [ ]
+    ports:
+      - "5173:80"
+  llmops-redis:
+    image: redis:6-alpine
+    restart: always
+    container_name: llmops-redis
+    volumes:
+      - ./volumes/redis/data:/data  #挂载redis在docker中存储的数据/data到宿主机上
+    # 启动redis服务时配置
+    command: redis-server --requirepass llmops123456
+    healthcheck: #redis出错时自动重启
+      test: ["CMD","redis-cli","ping"]
+    ports:
+      - "6379:6379"
