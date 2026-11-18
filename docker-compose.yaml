@@ -13,16 +13,242 @@ services:
     restart: always
     environment: [ ]
     ports:
-      - "5173:80"
+      - "3000:3000"
+  llmops-api:
+    image: llmops-api:0.1.0  #镜像名
+    build:  #找不到镜像时的构建路径
+      context: ../llmops-api #上一层目录的llmops-api文件夹
+      dockerfile: Dockerfile
+    container_name: llmops-api #容器名
+    restart: always
+    volumes:
+      # 将容器的日志数据/app/api/storage挂载到本地/opt/app/storage上，防止数据丢失
+      - /opt/app/storage:/app/api/storage
+    environment:
+      # 模式为API，代表启用API服务
+      MODE: api
+      SERVER_WORKER_AMOUNT: 1  #worker进程数量
+      SERVER_THREAD_AMOUNT: 4  #每个进程下有4个线程
+      # 数据库迁移配置
+      MIGRATION_ENABLED: 'true'
+      # JWT加密秘钥
+      JWT_SECRET_KEY: O2QrSHowj3kGqdh0UBztEZAD6bpTPNRx
+      # CSRF校验开关
+      WTF_CSRF_ENABLED: 'false'
+      # SQLAlchemy数据库配置
+      SQLALCHEMY_DATABASE_URI: postgresql://postgres:llmops123456@llmops-db:5432/llmops?client_encoding=utf-8
+      SQLALCHEMY_POOL_SIZE: 30
+      SQLALCHEMY_POOL_RECYCLE: 3600
+      SQLALCHEMY_ECHO: 'false'  #是否将 SQLAlchemy 生成的 SQL 语句和数据库执行信息打印到控制台（日志）中
+      # Redis缓存数据库配置
+      REDIS_HOST: llmops-redis
+      REDIS_PORT: 6379
+      REDIS_USERNAME: ''
+      REDIS_PASSWORD: llmops123456
+      REDIS_DB: 0
+      REDIS_USE_SSL: 'false'
+      # Weaviate向量数据库配置
+      WEAVIATE_HTTP_HOST: llmops-weaviate
+      WEAVIATE_HTTP_PORT: 8080
+      WEAVIATE_GRPC_HOST: llmops-weaviate
+      WEAVIATE_GRPC_PORT: 50051
+      WEAVIATE_API_KEY: ftBC9hKkjfdbdi0wW3T6kEtMh5BZFpGa1DF8
+      # 腾讯云COS对象存储
+      COS_SECRET_ID: AKIDUpyu7A2tfGn7EAvTs67ydGi062mLisqd
+      COS_SECRET_KEY: d8QWQ7GDxVtAF7qOlvtgIk0hQ6hZr1zk
+      COS_REGION: ap-guangzhou
+      COS_SCHEME: https
+      COS_BUCKET: imooc-llmops-1259388149
+      COS_DOMAIN: ''
+      # Celery异步队列任务配置
+      CELERY_BROKER_DB: 1
+      CELERY_RESULT_BACKEND_DB: 1
+      CELERY_TASK_IGNORE_RESULT: 'true' #异步任务出现错误时忽略错误，保证进程不被中断
+      CELERY_RESULT_EXPIRES: 3600
+      CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP: 'true'
+      # Github OAuth应用秘钥
+      GITHUB_CLIENT_ID: Ov23liLFWussK3TpWZOR
+      GITHUB_CLIENT_SECRET: f5f04da7d5e572ad0b7b70ce5e0da0b250e9de57
+      GITHUB_REDIRECT_URI: https://yunwangluokeji.icu/auth/authorize/github #交给github去识别
+      # LangSmith配置
+      LANGCHAIN_TRACING_V2: 'true'
+      LANGCHAIN_ENDPOINT: https://api.smith.langchain.com
+      LANGCHAIN_API_KEY: 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
+      LANGCHAIN_PROJECT: LLMOpsDev
+      # HuggingFace配置
+      TRANSFORMERS_OFFLINE: 1
+      # 辅助Agent智能体应用id标识
+      ASSISTANT_AGENT_ID: 6774fcef-b594-8008-b30c-a05b8190afe6
+      # OpenAI服务提供者
+      OPENAI_API_KEY: sk-400df849549544b383f36eef942ad98c
+      OPENAI_API_BASE: https://api.deepseek.com/v1
+      # 百度千帆服务提供者
+      QIANFAN_API_KEY: bce-v3/ALTAK-t4NTjh5x6DqFxu4Vr08OU/ff94699fd19cbd33eb067ef56a868a6771ebf701
+      QIANFAN_BASE_URL: https://qianfan.baidubce.com/v2/
+      # 通义千问服务提供者
+      DASHSCOPE_API_KEY: sk-ws-H.PHRLERD.2SGl.MEYCIQCuP9udcB1AVXSiSGj2VaprPM06J4rcebdJQYYbMcNdzgIhAM-f3k2Q_3CJcGqT9Unwz1OFIHbX1zpH2mDEQYICXBz3
+      # 高德工具API秘钥
+      GAODE_API_KEY: f9deca1f4cc388e484d290e26d8c8aa3
+      # 谷歌Serper搜索API秘钥
+      SERPER_API_KEY: 7075a5f7aab4724df0ee74b8b25d06ab69d5ef95
+    ports:
+      - "5001:5001"
+    depends_on:
+      - llmops-db
+      - llmops-redis
+      - llmops-weaviate
+  llmops-celery:
+    image: llmops-api:0.1.0  #镜像名
+    build: #找不到镜像时的构建路径
+      context: ../llmops-api #上一层目录的llmops-api文件夹
+      dockerfile: Dockerfile
+    container_name: llmops-celery #容器名
+    restart: always
+    volumes:
+      # 将容器的日志数据/app/api/storage挂载到本地/opt/app/storage上，防止数据丢失
+      - /opt/app/storage:/app/api/storage
+    environment:
+      # 模式为celery，代表启用Celery异步任务队列
+      MODE: celery
+      CELERY_WORKER_AMOUNT: 1  #worker进程数量
+      # 数据库迁移配置
+      MIGRATION_ENABLED: 'false'
+      # JWT加密秘钥
+      JWT_SECRET_KEY: O2QrSHowj3kGqdh0UBztEZAD6bpTPNRx
+      # CSRF校验开关
+      WTF_CSRF_ENABLED: 'false'
+      # SQLAlchemy数据库配置
+      SQLALCHEMY_DATABASE_URI: postgresql://postgres:llmops123456@llmops-db:5432/llmops?client_encoding=utf-8
+      SQLALCHEMY_POOL_SIZE: 30
+      SQLALCHEMY_POOL_RECYCLE: 3600
+      SQLALCHEMY_ECHO: 'false'  #是否将 SQLAlchemy 生成的 SQL 语句和数据库执行信息打印到控制台（日志）中
+      # Redis缓存数据库配置
+      REDIS_HOST: llmops-redis
+      REDIS_PORT: 6379
+      REDIS_USERNAME: ''
+      REDIS_PASSWORD: llmops123456
+      REDIS_DB: 0
+      REDIS_USE_SSL: 'false'
+      # Weaviate向量数据库配置
+      WEAVIATE_HTTP_HOST: llmops-weaviate
+      WEAVIATE_HTTP_PORT: 8080
+      WEAVIATE_GRPC_HOST: llmops-weaviate
+      WEAVIATE_GRPC_PORT: 50051
+      WEAVIATE_API_KEY: ftBC9hKkjfdbdi0wW3T6kEtMh5BZFpGa1DF8
+      # 腾讯云COS对象存储
+      COS_SECRET_ID: AKIDUpyu7A2tfGn7EAvTs67ydGi062mLisqd
+      COS_SECRET_KEY: d8QWQ7GDxVtAF7qOlvtgIk0hQ6hZr1zk
+      COS_REGION: ap-guangzhou
+      COS_SCHEME: https
+      COS_BUCKET: imooc-llmops-1259388149
+      COS_DOMAIN: ''
+      # Celery异步队列任务配置
+      CELERY_BROKER_DB: 1
+      CELERY_RESULT_BACKEND_DB: 1
+      CELERY_TASK_IGNORE_RESULT: 'true' #异步任务出现错误时忽略错误，保证进程不被中断
+      CELERY_RESULT_EXPIRES: 3600
+      CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP: 'true'
+      # Github OAuth应用秘钥
+      GITHUB_CLIENT_ID: Ov23liLFWussK3TpWZOR
+      GITHUB_CLIENT_SECRET: f5f04da7d5e572ad0b7b70ce5e0da0b250e9de57
+      GITHUB_REDIRECT_URI: https://yunwangluokeji.icu/auth/authorize/github #交给github去识别
+      # LangSmith配置
+      LANGCHAIN_TRACING_V2: 'true'
+      LANGCHAIN_ENDPOINT: https://api.smith.langchain.com
+      LANGCHAIN_API_KEY: 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
+      LANGCHAIN_PROJECT: LLMOpsDev
+      # HuggingFace配置
+      TRANSFORMERS_OFFLINE: 1
+      # 辅助Agent智能体应用id标识
+      ASSISTANT_AGENT_ID: 6774fcef-b594-8008-b30c-a05b8190afe6
+      # OpenAI服务提供者
+      OPENAI_API_KEY: sk-400df849549544b383f36eef942ad98c
+      OPENAI_API_BASE: https://api.deepseek.com/v1
+      # 百度千帆服务提供者
+      QIANFAN_API_KEY: bce-v3/ALTAK-t4NTjh5x6DqFxu4Vr08OU/ff94699fd19cbd33eb067ef56a868a6771ebf701
+      QIANFAN_BASE_URL: https://qianfan.baidubce.com/v2/
+      # 通义千问服务提供者
+      DASHSCOPE_API_KEY: sk-ws-H.PHRLERD.2SGl.MEYCIQCuP9udcB1AVXSiSGj2VaprPM06J4rcebdJQYYbMcNdzgIhAM-f3k2Q_3CJcGqT9Unwz1OFIHbX1zpH2mDEQYICXBz3
+      # 高德工具API秘钥
+      GAODE_API_KEY: f9deca1f4cc388e484d290e26d8c8aa3
+      # 谷歌Serper搜索API秘钥
+      SERPER_API_KEY: 7075a5f7aab4724df0ee74b8b25d06ab69d5ef95
+    depends_on:
+      - llmops-db
+      - llmops-redis
+      - llmops-weaviate
   llmops-redis:
     image: redis:6-alpine
     restart: always
     container_name: llmops-redis
     volumes:
-      - ./volumes/redis/data:/data  #挂载redis在docker中存储的数据/data到宿主机上
+      - /opt/llmops-redis-data:/data   #挂载redis在docker中存储的数据/data到宿主机llmops-redis-data上
     # 启动redis服务时配置
     command: redis-server --requirepass llmops123456
     healthcheck: #redis出错时自动重启
-      test: ["CMD","redis-cli","ping"]
+      test: ["CMD","redis-cli","-a", "llmops123456", "ping"]
     ports:
       - "6379:6379"
+  llmops-db:
+    image: postgres:15-alpine
+    restart: always
+    container_name: llmops-db
+    environment:
+      #配置默认的账户名、账户密码、默认数据库、数据存储的位置
+      PGUSER: postgres
+      POSTGRES_PASSWORD: llmops123456
+      POSTGRES_DB: llmops #数据库
+      PGDATA: /var/lib/postgresql/data/pgdata #数据存储目录
+    volumes:
+      # 将postgres数据挂载到本地/opt/llmops-db-data上，防止数据丢失
+      - /opt/llmops-db-data:/var/lib/postgresql/data/pgdata
+      # 首先把宿主机当前目录下的 postgres 文件夹里的 init.sql 文件，映射（挂载）到容器内部的 /docker-entrypoint-initdb.d/init.sql
+      # 它的真实目的：PostgreSQL 官方镜像有一个特性，当容器第一次启动并且数据目录为空时，它会自动执行 /docker-entrypoint-initdb.d/ 目录下的所有 .sql 或 .sh 脚本。所以这行代码的作用是：让你在宿主机写好的建表/初始化 SQL 脚本，在数据库初始化时自动在容器里跑一遍。
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      #每隔一秒发起一个健康测试，最多重试30次
+      test: ["CMD","pg_isready"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    ports:
+      - "5432:5432"
+  llmops-weaviate:
+    image: semitechnologies/weaviate:1.39.16
+    container_name: llmops-weaviate
+    restart: always
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25  # 查询默认返回的数据条数
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'false'  # 不允许匿名访问weaviate向量数据库，需要授权才能和weaviate进行交互
+      PERSISTENCE_DATA_PATH: /var/lib/weaviate  # weaviate数据存储路径
+      DEFAULT_VECTORIZER_MODULE: 'none'  # 向量化模块设置为none，不使用weaviate本身提供的向量模型
+      CLUSTER_HOSTNAME: 'node1'  # 节点的主机名字
+      AUTHENTICATION_APIKEY_ENABLED: 'true'  # 启动基于API秘钥的身份校验
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: 'ftBC9hKkjfdbdi0wW3T6kEtMh5BZFpGa1DF8'  # 允许的API秘钥列表，随机生成的36位秘钥
+      AUTHENTICATION_APIKEY_USERS: '751363075@qq.com'  # 基于秘钥的API身份列表
+      AUTHORIZATION_ADMINLIST_ENABLED: 'true'  # 启动AdminList授权方案
+      AUTHORIZATION_ADMINLIST_USERS: '751363075@qq.com'  # 使用AdminList方案时具有管理权限的用户
+    volumes: #将数据库挂载在虚拟机上
+      - /opt/llmops-weaviate-data:/var/lib/weaviate
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+  llmops-nginx:
+    image: nginx:latest
+    restart: always
+    container_name: llmops-nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/proxy.conf:/etc/nginx/proxy.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/ssl
+    depends_on:
+      - llmops-ui
+      - llmops-api
+    ports:
+      - "80:80"
+      - "443:443"
+
+
+
+
