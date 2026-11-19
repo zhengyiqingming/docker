@@ -238,9 +238,13 @@ services:
     restart: always
     container_name: llmops-nginx
     volumes:
+      #将宿主机的/nginx/nginx.conf，强制塞给llmops-nginx容器的/etc/nginx/nginx.conf
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      #将宿主机的/nginx/proxy.conf，强制塞给llmops-nginx容器的/etc/nginx/proxy.conf
       - ./nginx/proxy.conf:/etc/nginx/proxy.conf
+      #llmops-nginx容器是一台“大门保安服务器”。宿主机把自己写的 default.conf（包含 443 证书和反向代理）塞给了这个保安
       - ./nginx/conf.d:/etc/nginx/conf.d
+      #将宿主机的/nginx/ssl文件夹，强制塞给了llmops-nginx容器的/etc/ssl文件夹
       - ./nginx/ssl:/etc/ssl
     depends_on:
       - llmops-ui
