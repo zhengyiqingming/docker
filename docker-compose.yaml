@@ -80,7 +80,7 @@ services:
       # 辅助Agent智能体应用id标识
       ASSISTANT_AGENT_ID: 6774fcef-b594-8008-b30c-a05b8190afe6
       # OpenAI服务提供者
-      OPENAI_API_KEY: sk-400df849549544b383f36eef942ad98c
+      OPENAI_API_KEY: sk-ffbfb29de4df4e748c6236f1514174d5
       OPENAI_API_BASE: https://api.deepseek.com/v1
       # 百度千帆服务提供者
       QIANFAN_API_KEY: bce-v3/ALTAK-t4NTjh5x6DqFxu4Vr08OU/ff94699fd19cbd33eb067ef56a868a6771ebf701
